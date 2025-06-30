@@ -2,7 +2,7 @@
 
 一个精美的交互式3D幸运抽奖系统，具有惊艳的视觉效果和多语言支持。
 
-[English](README.md) | [在线演示](#) | [报告问题](#) | [功能建议](#)
+[English](README.md) | [在线演示](https://todd1143.github.io/3d-lucky-draw/) | [报告问题](mailto:hihi.todd@gmail.com?subject=问题反馈%20-%203D%20幸运抽奖系统) | [功能建议](mailto:hihi.todd@gmail.com?subject=功能建议%20-%203D%20幸运抽奖系统)
 
 ## ✨ 主要特性
 
