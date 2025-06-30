@@ -2,7 +2,7 @@
 
 A beautiful, interactive 3D lucky draw system with stunning visual effects and multi-language support.
 
-[中文说明](README_zh.md) | [Live Demo](#) | [Report Bug](#) | [Request Feature](#)
+[中文说明](README_zh.md) | [Live Demo](https://todd1143.github.io/3d-lucky-draw/) | [Report Bug](mailto:hihi.todd@gmail.com?subject=Bug%20Report%20-%203D%20Lucky%20Draw%20System) | [Request Feature](mailto:hihi.todd@gmail.com?subject=Feature%20Request%20-%203D%20Lucky%20Draw%20System)
 
 ## ✨ Features
 
