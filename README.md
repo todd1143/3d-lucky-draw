@@ -24,7 +24,7 @@ A beautiful, interactive 3D lucky draw system with stunning visual effects and m
    ```
 
 2. **Open in browser**
-   - Simply open `3d_lottery_v3.html` in any modern web browser
+   - Simply open 'index.html` in any modern web browser
    - No installation or setup required!
 
 ## 🎮 How to Use
