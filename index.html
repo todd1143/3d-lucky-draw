@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Lottery System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #000000 100%);
+            color: #00ffff;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            display: none;
+        }
+        
+        #container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 30, 60, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            box-shadow: 
+                0 0 40px rgba(0, 255, 255, 0.4),
+                0 0 80px rgba(0, 255, 255, 0.2),
+                inset 0 2px 0 rgba(0, 255, 255, 0.15);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            min-width: 320px;
+            max-width: 340px;
+        }
+        
+        #titleRow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        
+        #settingsTitle {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #00ffff;
+            text-shadow: 0 0 15px rgba(0, 255, 255, 0.9), 
+                         0 0 30px rgba(0, 255, 255, 0.5);
+            font-family: 'SF Mono', 'Monaco', monospace;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding-bottom: 8px;
+        }
+        
+
+        
+        #settingsTitle::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+        
+        /* 底部按钮区域 */
+        #bottomButtons {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        #bottomButtons .button {
+            width: 140px;
+            height: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 12px;
+            letter-spacing: 1px;
+            margin: 0;
+            padding: 12px 20px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            #bottomButtons {
+                bottom: 30px;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            #bottomButtons .button {
+                width: 130px;
+                height: 45px;
+                font-size: 13px;
+            }
+            
+            #controls {
+                max-width: calc(100vw - 40px);
+            }
+            
+            #controls.collapsed {
+                min-width: 45px;
+                max-width: 45px;
+                width: 45px;
+                height: 45px;
+                padding: 8px;
+            }
+            
+            #controls.collapsed #collapseLink {
+                font-size: 18px;
+                position: static;
+                transform: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #bottomButtons {
+                bottom: 20px;
+                gap: 10px;
+            }
+            
+            #bottomButtons .button {
+                width: 120px;
+                height: 40px;
+                font-size: 12px;
+            }
+            
+            #controls.collapsed {
+                min-width: 40px;
+                max-width: 40px;
+                width: 40px;
+                height: 40px;
+                padding: 6px;
+            }
+            
+            #controls.collapsed #collapseLink {
+                font-size: 16px;
+                position: static;
+                transform: none;
+            }
+        }
+        
+        #controls.collapsed {
+            padding: 12px;
+            min-width: 50px;
+            max-width: 50px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        #controls.collapsed #inputSection,
+        #controls.collapsed #loadNamesBtn,
+        #controls.collapsed #buttonRow,
+        #controls.collapsed #status {
+            display: none;
+        }
+        
+        #controls.collapsed #titleRow {
+            margin: 0;
+            justify-content: center;
+        }
+        
+        #controls.collapsed #settingsTitle {
+            display: none;
+        }
+        
+        #controls.collapsed #collapseLink {
+            color: #00ffff;
+            font-size: 20px;
+            text-align: center;
+            width: 100%;
+            text-decoration: none;
+            position: static;
+            transform: none;
+        }
+        
+        #controls.collapsed #collapseLink:before {
+            content: '⚙️';
+            margin-right: 0;
+        }
+        
+        #inputSection {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 200px;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+        
+
+        
+
+        
+        /* 按钮行布局 */
+        #buttonRow {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        /* 简化按钮样式 */
+        .simple-button {
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            text-align: center;
+        }
+        
+        .simple-button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .simple-button:active {
+            transform: scale(0.98);
+        }
+        
+        /* 载入名单按钮单独一行 */
+        #loadNamesBtn.simple-button {
+            width: 100%;
+            margin-top: 12px;
+            border-color: rgba(76, 175, 80, 0.4);
+            color: #4caf50;
+        }
+        
+        #loadNamesBtn.simple-button:hover {
+            border-color: rgba(76, 175, 80, 0.6);
+            background: rgba(76, 175, 80, 0.08);
+            color: #66bb6a;
+        }
+        
+        /* 历史记录和语言按钮并排 */
+        #buttonRow .simple-button {
+            flex: 1;
+        }
+        
+        #historyBtn.simple-button {
+            border-color: rgba(186, 104, 200, 0.5);
+            color: #ba68c8;
+        }
+        
+        #historyBtn.simple-button:hover {
+            border-color: rgba(186, 104, 200, 0.7);
+            background: rgba(186, 104, 200, 0.12);
+            color: #ce93d8;
+        }
+        
+        #langBtn.simple-button {
+            border-color: rgba(0, 255, 255, 0.4);
+            color: #00ffff;
+        }
+        
+        #langBtn.simple-button:hover {
+            border-color: rgba(0, 255, 255, 0.6);
+            background: rgba(0, 255, 255, 0.08);
+            color: #4dd0e1;
+        }
+
+
+        
+        /* Winner Modal - 使用日文版的爆炸效果 */
+        #winner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            background: radial-gradient(circle, rgba(255, 107, 107, 0.9), rgba(255, 167, 38, 0.9), rgba(0, 0, 0, 0.9));
+            display: none;
+            animation: winnerExplode 3s ease-out;
+            pointer-events: auto;
+        }
+        
+        #winnerContent {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            pointer-events: auto;
+            /* 移除重复的 position: relative; */
+            padding: 50px 30px 30px 30px; /* 增加顶部内边距为关闭按钮留出空间 */
+            min-width: 300px;
+        }
+        
+        #closeBtn {
+            position: absolute;
+            top: 10px; /* 调整到内容区域内部 */
+            right: 10px; /* 调整到内容区域内部 */
+            background: rgba(255, 50, 50, 0.9);
+            border: 2px solid rgba(255, 100, 100, 0.8);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 1002;
+            user-select: none;
+            pointer-events: auto;
+            outline: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        #closeBtn:hover {
+            background: rgba(255, 80, 80, 1);
+            border-color: rgba(255, 120, 120, 1);
+            transform: scale(1.15);
+            box-shadow: 0 6px 20px rgba(255, 50, 50, 0.5);
+        }
+        
+        #closeBtn:active {
+            transform: scale(1.05);
+            background: rgba(255, 30, 30, 1);
+        }
+        
+        #closeBtn:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.5);
+            outline-offset: 2px;
+        }
+        
+        /* 响应式设计调整 */
+        @media (max-width: 768px) {
+            #closeBtn {
+                top: 8px;
+                right: 8px;
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #closeBtn {
+                top: 6px;
+                right: 6px;
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+        }
+        
+        #winnerText {
+            font-size: 4rem;
+            font-weight: bold;
+            text-shadow: 0 0 30px #fff, 0 0 60px #ff6b6b;
+            margin-bottom: 20px;
+            animation: winnerPulse 1s infinite;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+        
+        #prizeText {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #ffa726;
+            text-shadow: 0 0 15px currentColor;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+        
+        #winnerName {
+            font-size: 6rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #ffa726, #4ecdc4, #45b7d1);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: rainbowText 2s infinite, winnerBounce 0.6s infinite;
+            text-shadow: 0 0 50px rgba(255, 255, 255, 0.8);
+            font-family: 'SF Mono', 'Monaco', monospace;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        /* 日文版的动画关键帧 */
+        @keyframes winnerExplode {
+            0% { 
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        @keyframes winnerBounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-30px); }
+            60% { transform: translateY(-15px); }
+        }
+        
+        @keyframes winnerPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        @keyframes rainbowText {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* 简化烟花样式 */
+        .firework {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            pointer-events: none;
+            z-index: 1500;
+        }
+        
+        .confetti-piece {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 2px;
+        }
+        
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+
+        
+        #nameInput {
+            width: 100%;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: white;
+            padding: 12px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        #nameInput {
+            width: 100%;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: white;
+            padding: 12px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: none;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        #prizeInput {
+            width: 100%;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: white;
+            padding: 12px;
+            font-size: 13px;
+            font-family: inherit;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        #nameInput:focus, #prizeInput:focus {
+            outline: none;
+            border: 1px solid rgba(100, 181, 246, 0.5);
+            box-shadow: 0 0 15px rgba(100, 181, 246, 0.2);
+        }
+        
+        #nameInput::placeholder, #prizeInput::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .button {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 107, 107, 0.15);
+            border: 2px solid #ff6b6b;
+            border-radius: 12px;
+            color: #ff6b6b;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 6px 0;
+            position: relative;
+            overflow: hidden;
+            font-family: inherit;
+            box-shadow: 
+                0 0 10px rgba(255, 107, 107, 0.5),
+                0 0 20px rgba(255, 107, 107, 0.3),
+                0 0 30px rgba(255, 107, 107, 0.2),
+                inset 0 0 10px rgba(255, 107, 107, 0.1);
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+        }
+        
+        .button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg) translateX(-100%);
+            transition: transform 0.6s;
+        }
+        
+        .button:hover::before {
+            transform: rotate(45deg) translateX(100%);
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 107, 107, 0.25);
+            border-color: #ff8e8e;
+            color: #fff;
+            box-shadow: 
+                0 0 20px rgba(255, 107, 107, 0.8),
+                0 0 30px rgba(255, 107, 107, 0.6),
+                0 0 40px rgba(255, 107, 107, 0.4),
+                inset 0 0 20px rgba(255, 107, 107, 0.2);
+            text-shadow: 0 0 20px rgba(255, 107, 107, 1);
+        }
+        
+        .button:active {
+            transform: scale(0.98);
+        }
+        
+        @keyframes neonPulse {
+            0% {
+                box-shadow: 
+                    0 0 5px rgba(255, 107, 107, 0.4),
+                    0 0 10px rgba(255, 107, 107, 0.2),
+                    0 0 15px rgba(255, 107, 107, 0.1),
+                    inset 0 0 5px rgba(255, 107, 107, 0.1);
+                text-shadow: 0 0 5px rgba(255, 107, 107, 0.6);
+            }
+            100% {
+                box-shadow: 
+                    0 0 15px rgba(255, 107, 107, 0.6),
+                    0 0 25px rgba(255, 107, 107, 0.4),
+                    0 0 35px rgba(255, 107, 107, 0.3),
+                    inset 0 0 15px rgba(255, 107, 107, 0.2);
+                text-shadow: 0 0 15px rgba(255, 107, 107, 0.9);
+            }
+        }
+        
+        @keyframes neonPulseHover {
+            0% {
+                box-shadow: 
+                    0 0 15px rgba(255, 107, 107, 0.6),
+                    0 0 25px rgba(255, 107, 107, 0.4),
+                    0 0 35px rgba(255, 107, 107, 0.3),
+                    inset 0 0 15px rgba(255, 107, 107, 0.2);
+            }
+            100% {
+                box-shadow: 
+                    0 0 25px rgba(255, 107, 107, 0.9),
+                    0 0 35px rgba(255, 107, 107, 0.7),
+                    0 0 45px rgba(255, 107, 107, 0.5),
+                    inset 0 0 25px rgba(255, 107, 107, 0.3);
+            }
+        }
+        
+
+        
+        #startBtn {
+            background: rgba(0, 255, 127, 0.2);
+            border-color: #00ff7f;
+            color: #00ff7f;
+            box-shadow: 
+                0 0 15px rgba(0, 255, 127, 0.6),
+                0 0 30px rgba(0, 255, 127, 0.4),
+                0 0 45px rgba(0, 255, 127, 0.2),
+                inset 0 0 15px rgba(0, 255, 127, 0.15);
+            text-shadow: 0 0 15px rgba(0, 255, 127, 0.9);
+        }
+        
+        #startBtn::before {
+            content: '🚀';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            animation: rocket 2s ease-in-out infinite;
+        }
+        
+        @keyframes rocket {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.2) rotate(15deg); }
+        }
+        
+        @keyframes neonPulseStart {
+            0% {
+                box-shadow: 
+                    0 0 10px rgba(0, 255, 127, 0.4),
+                    0 0 20px rgba(0, 255, 127, 0.2),
+                    0 0 30px rgba(0, 255, 127, 0.1),
+                    inset 0 0 10px rgba(0, 255, 127, 0.1);
+                text-shadow: 0 0 10px rgba(0, 255, 127, 0.7);
+            }
+            100% {
+                box-shadow: 
+                    0 0 20px rgba(0, 255, 127, 0.7),
+                    0 0 40px rgba(0, 255, 127, 0.5),
+                    0 0 60px rgba(0, 255, 127, 0.3),
+                    inset 0 0 20px rgba(0, 255, 127, 0.2);
+                text-shadow: 0 0 20px rgba(0, 255, 127, 1);
+            }
+        }
+        
+        #startBtn:hover {
+            background: rgba(0, 255, 127, 0.3);
+            border-color: #32ff9a;
+            color: #fff;
+            box-shadow: 
+                0 0 25px rgba(0, 255, 127, 0.9),
+                0 0 50px rgba(0, 255, 127, 0.7),
+                0 0 75px rgba(0, 255, 127, 0.5),
+                inset 0 0 25px rgba(0, 255, 127, 0.3);
+            text-shadow: 0 0 25px rgba(0, 255, 127, 1);
+        }
+        
+        @keyframes neonPulseStartHover {
+            0% {
+                box-shadow: 
+                    0 0 20px rgba(0, 255, 127, 0.7),
+                    0 0 40px rgba(0, 255, 127, 0.5),
+                    0 0 60px rgba(0, 255, 127, 0.3),
+                    inset 0 0 20px rgba(0, 255, 127, 0.2);
+            }
+            100% {
+                box-shadow: 
+                    0 0 35px rgba(0, 255, 127, 1),
+                    0 0 70px rgba(0, 255, 127, 0.8),
+                    0 0 105px rgba(0, 255, 127, 0.6),
+                    inset 0 0 35px rgba(0, 255, 127, 0.4);
+            }
+        }
+        
+        @keyframes neonPulseBlue {
+            0% {
+                box-shadow: 
+                    0 0 5px rgba(33, 150, 243, 0.4),
+                    0 0 10px rgba(33, 150, 243, 0.2),
+                    0 0 15px rgba(33, 150, 243, 0.1),
+                    inset 0 0 5px rgba(33, 150, 243, 0.1);
+                text-shadow: 0 0 5px rgba(33, 150, 243, 0.6);
+            }
+            100% {
+                box-shadow: 
+                    0 0 15px rgba(33, 150, 243, 0.6),
+                    0 0 25px rgba(33, 150, 243, 0.4),
+                    0 0 35px rgba(33, 150, 243, 0.3),
+                    inset 0 0 15px rgba(33, 150, 243, 0.2);
+                text-shadow: 0 0 15px rgba(33, 150, 243, 0.9);
+            }
+        }
+        
+        @keyframes neonPulseBlueHover {
+            0% {
+                box-shadow: 
+                    0 0 15px rgba(33, 150, 243, 0.6),
+                    0 0 25px rgba(33, 150, 243, 0.4),
+                    0 0 35px rgba(33, 150, 243, 0.3),
+                    inset 0 0 15px rgba(33, 150, 243, 0.2);
+            }
+            100% {
+                box-shadow: 
+                    0 0 25px rgba(33, 150, 243, 0.9),
+                    0 0 35px rgba(33, 150, 243, 0.7),
+                    0 0 45px rgba(33, 150, 243, 0.5),
+                    inset 0 0 25px rgba(33, 150, 243, 0.3);
+            }
+        }
+        
+        #stopBtn {
+            background: rgba(255, 69, 0, 0.2);
+            border-color: #ff4500;
+            color: #ff4500;
+            box-shadow: 
+                0 0 15px rgba(255, 69, 0, 0.6),
+                0 0 30px rgba(255, 69, 0, 0.4),
+                0 0 45px rgba(255, 69, 0, 0.2),
+                inset 0 0 15px rgba(255, 69, 0, 0.15);
+            text-shadow: 0 0 15px rgba(255, 69, 0, 0.9);
+        }
+        
+        #stopBtn::before {
+            content: '⏹️';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            animation: stopPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes stopPulse {
+            0%, 100% { 
+                transform: translateY(-50%) scale(1); 
+                filter: brightness(1);
+            }
+            50% { 
+                transform: translateY(-50%) scale(1.15); 
+                filter: brightness(1.3);
+            }
+        }
+        
+        @keyframes neonPulseStop {
+            0% {
+                box-shadow: 
+                    0 0 10px rgba(255, 69, 0, 0.4),
+                    0 0 20px rgba(255, 69, 0, 0.2),
+                    0 0 30px rgba(255, 69, 0, 0.1),
+                    inset 0 0 10px rgba(255, 69, 0, 0.1);
+                text-shadow: 0 0 10px rgba(255, 69, 0, 0.7);
+            }
+            100% {
+                box-shadow: 
+                    0 0 20px rgba(255, 69, 0, 0.7),
+                    0 0 40px rgba(255, 69, 0, 0.5),
+                    0 0 60px rgba(255, 69, 0, 0.3),
+                    inset 0 0 20px rgba(255, 69, 0, 0.2);
+                text-shadow: 0 0 20px rgba(255, 69, 0, 1);
+            }
+        }
+        
+        #stopBtn:hover {
+            background: rgba(255, 69, 0, 0.35);
+            border-color: #ff6347;
+            color: #fff;
+            box-shadow: 
+                0 0 25px rgba(255, 69, 0, 0.9),
+                0 0 50px rgba(255, 69, 0, 0.7),
+                0 0 75px rgba(255, 69, 0, 0.5),
+                inset 0 0 25px rgba(255, 69, 0, 0.3);
+            text-shadow: 0 0 25px rgba(255, 69, 0, 1);
+        }
+        
+        @keyframes neonPulseStopHover {
+            0% {
+                box-shadow: 
+                    0 0 20px rgba(255, 69, 0, 0.7),
+                    0 0 40px rgba(255, 69, 0, 0.5),
+                    0 0 60px rgba(255, 69, 0, 0.3),
+                    inset 0 0 20px rgba(255, 69, 0, 0.2);
+            }
+            100% {
+                box-shadow: 
+                    0 0 35px rgba(255, 69, 0, 1),
+                    0 0 70px rgba(255, 69, 0, 0.8),
+                    0 0 105px rgba(255, 69, 0, 0.6),
+                    inset 0 0 35px rgba(255, 69, 0, 0.4);
+            }
+        }
+        
+        .button:disabled {
+            background: rgba(102, 102, 102, 0.15);
+            border-color: #666;
+            color: #666;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: 
+                0 0 5px rgba(102, 102, 102, 0.3),
+                inset 0 0 5px rgba(102, 102, 102, 0.1);
+            text-shadow: none;
+        }
+        
+        .button:disabled::before {
+            display: none;
+        }
+        
+        .button:disabled:hover {
+            background: rgba(102, 102, 102, 0.15);
+            border-color: #666;
+            color: #666;
+            box-shadow: 
+                0 0 5px rgba(102, 102, 102, 0.3),
+                inset 0 0 5px rgba(102, 102, 102, 0.1);
+            text-shadow: none;
+        }
+        
+        #collapseLink {
+            color: #00ffff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            /* 移除绝对定位，让它自然排列在标题旁边 */
+            margin-left: 15px; /* 添加左边距与标题保持适当间距 */
+            /* 移除以下行：
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            */
+        }
+        
+        #collapseLink:hover {
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 1);
+        }
+        
+        #status {
+            text-align: center;
+            font-size: 12px;
+            opacity: 0.6;
+            font-weight: 400;
+            margin: 68px 0 0 0;
+            padding: 0;
+            background: none;
+            border: none;
+        }
+        
+        /* History Modal */
+        #historyModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8); /* 简化为纯黑色透明度 */
+            /* 移除: backdrop-filter: blur(20px); */
+            /* 移除: -webkit-backdrop-filter: blur(20px); */
+            z-index: 1001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            /* 移除: animation: fadeIn 0.5s ease; */
+        }
+        
+        /* 简化历史记录内容容器 */
+        #historyContent {
+            background: rgba(20, 20, 30, 0.95); /* 简化为纯色背景 */
+            /* 移除复杂渐变: linear-gradient(135deg, rgba(0, 15, 30, 0.95) 0%, rgba(10, 25, 45, 0.9) 100%); */
+            border: 1px solid rgba(0, 255, 255, 0.3); /* 简化边框 */
+            border-radius: 8px; /* 减小圆角 */
+            padding: 20px; /* 减少内边距 */
+            max-width: 85%;
+            max-height: 75%;
+            overflow-y: auto;
+            /* 移除复杂阴影: box-shadow: 0 0 40px rgba(0, 255, 255, 0.2), inset 0 1px 0 rgba(0, 255, 255, 0.1); */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); /* 简化阴影 */
+            position: relative;
+            min-width: 320px;
+        }
+        
+        /* 简化历史记录标题 */
+        #historyTitle {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #00ffff;
+            /* 移除: text-shadow: 0 0 10px currentColor; */
+            font-family: 'SF Mono', 'Monaco', monospace;
+            /* 移除: text-transform: uppercase; */
+            /* 移除: letter-spacing: 2px; */
+        }
+        
+        /* 简化历史记录项目 */
+        .history-item {
+            background: rgba(30, 30, 40, 0.8); /* 简化背景 */
+            /* 移除复杂渐变: linear-gradient(135deg, rgba(0, 20, 40, 0.7) 0%, rgba(0, 30, 60, 0.6) 100%); */
+            border: 1px solid rgba(255, 255, 255, 0.1); /* 简化边框 */
+            border-radius: 4px; /* 减小圆角 */
+            padding: 10px; /* 减少内边距 */
+            margin-bottom: 6px; /* 减少间距 */
+            /* 移除过渡动画: transition: all 0.3s ease; */
+        }
+        
+        .history-item:hover {
+            background: rgba(40, 40, 50, 0.9); /* 简化悬停效果 */
+            /* 移除: border: 1px solid rgba(0, 255, 255, 0.4); */
+            /* 移除: box-shadow: 0 0 15px rgba(0, 255, 255, 0.1); */
+            /* 移除: transform: translateY(-1px); */
+        }
+        
+        /* 简化时间显示 */
+        .history-time {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6); /* 简化颜色 */
+            margin-bottom: 3px;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            /* 移除: text-transform: uppercase; */
+            /* 移除: letter-spacing: 0.5px; */
+        }
+        
+        /* 简化获奖者显示 */
+        .history-winner {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #00ff88; /* 简化颜色 */
+            /* 移除: text-shadow: 0 0 5px currentColor; */
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+        
+        /* 简化奖品显示 */
+        .history-prize {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 100, 0.9); /* 简化颜色 */
+            margin-top: 2px;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+        
+        /* 简化清除历史按钮 */
+        #clearHistoryBtn {
+            background: rgba(180, 50, 50, 0.8); /* 简化背景 */
+            /* 移除复杂渐变: linear-gradient(135deg, rgba(100, 0, 0, 0.8) 0%, rgba(150, 0, 0, 0.7) 100%); */
+            border: 1px solid rgba(255, 100, 100, 0.6);
+            color: #ff8888;
+            padding: 8px 16px;
+            border-radius: 4px; /* 减小圆角 */
+            font-size: 11px;
+            cursor: pointer;
+            /* 移除过渡动画: transition: all 0.3s ease; */
+            margin-top: 10px;
+            width: 100%;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            /* 移除: text-transform: uppercase; */
+            /* 移除: letter-spacing: 0.5px; */
+            /* 移除: text-shadow: 0 0 5px currentColor; */
+        }
+        
+        #clearHistoryBtn:hover {
+            background: rgba(200, 60, 60, 0.9); /* 简化悬停效果 */
+            /* 移除: border: 1px solid rgba(255, 100, 100, 0.8); */
+            /* 移除: box-shadow: 0 0 15px rgba(255, 100, 100, 0.3); */
+        }
+        
+        /* 简化关闭按钮 */
+        #closeHistoryBtn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: rgba(100, 100, 100, 0.8); /* 简化背景 */
+            /* 移除复杂渐变: linear-gradient(135deg, rgba(100, 0, 0, 0.8) 0%, rgba(150, 0, 0, 0.7) 100%); */
+            border: 1px solid rgba(200, 200, 200, 0.6);
+            color: #ffffff;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px; /* 减小圆角 */
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* 移除: text-shadow: 0 0 5px currentColor; */
+        }
+        
+        #closeHistoryBtn:hover {
+            background: rgba(120, 120, 120, 0.9); /* 简化悬停效果 */
+            /* 移除: background: linear-gradient(135deg, rgba(150, 0, 0, 0.9) 0%, rgba(200, 0, 0, 0.8) 100%); */
+            /* 移除: box-shadow: 0 0 15px rgba(255, 100, 100, 0.4); */
+            /* 移除: transform: scale(1.1); */
+        }
+        
+        /* 移除fadeIn动画 */
+        /*
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        */
+        
+        /* 移除重复的History Modal样式 */
+        /*
+        #historyModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(26, 35, 126, 0.3);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            z-index: 1001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        #historyContent {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 25px;
+            padding: 30px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            position: relative;
+            min-width: 400px;
+        }
+        */
+
+        /* 添加底部署名样式 */
+        #footer {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        #footerText {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #footerText:hover {
+            color: rgba(0, 255, 255, 0.9);
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
+        }
+
+        /* 心形emoji特殊效果 */
+        #footerText:hover::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #ff69b4;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff69b4;
+            animation: heartbeat 1.5s infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.2); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            #footer {
+                bottom: 10px;
+            }
+            
+            #footerText {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            
+            #bottomButtons {
+                bottom: 40px; /* 为底部署名留出空间 */
+            }
+        }
+
+        @media (max-width: 480px) {
+            #footer {
+                bottom: 8px;
+            }
+            
+            #footerText {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+            
+            #bottomButtons {
+                bottom: 35px; /* 为底部署名留出空间 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <div id="titleRow">
+                <div id="settingsTitle" data-key="settingsTitle">抽獎設定</div>
+                <span id="collapseLink" data-key="collapseLink">收起</span>
+            </div>
+            <div id="inputSection">
+                <textarea id="nameInput" data-key="nameInput" placeholder="請輸入參與者名單，每行一個名字：&#10;張三&#10;李四&#10;王五&#10;..."></textarea>
+                                <input type="text" id="prizeInput" data-key="prizeInput" placeholder="請輸入禮物名稱（例如：iPhone 15 Pro）">
+                <button id="loadNamesBtn" class="simple-button" data-key="loadNamesBtn">載入名單</button>
+                <div id="buttonRow">
+                    <button id="historyBtn" class="simple-button" data-key="historyBtn">歷史記錄</button>
+                    <button id="langBtn" class="simple-button" data-key="langBtn">中文</button>
+                </div>
+            </div>
+            
+
+            <div id="status" data-key="status">請先載入名單</div>
+        </div>
+        
+        <!-- 底部按钮区域 -->
+        <div id="bottomButtons">
+            <button id="startBtn" class="button" disabled data-key="startBtn">開始抽獎</button>
+            <button id="stopBtn" class="button" disabled data-key="stopBtn">停止</button>
+        </div>
+        
+        <!-- 添加底部署名 -->
+        <div id="footer">
+            <a href="mailto:hihi.todd@gmail.com" id="footerText" data-key="footerText">用❤️設計 by hihi.todd@gmail.com</a>
+        </div>
+        
+
+        
+        <div id="winner">
+            <div id="winnerContent">
+                <button id="closeBtn">×</button>
+                <div id="winnerText" data-key="winnerText">恭喜中獎</div>
+                <div id="prizeText"></div>
+                <div id="winnerName"></div>
+            </div>
+        </div>
+        
+        <div id="historyModal">
+            <div id="historyContent">
+                <button id="closeHistoryBtn" style="position: absolute; top: 15px; right: 20px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center;">×</button>
+                <div id="historyTitle" data-key="historyTitle">抽獎歷史</div>
+                <div id="historyList"></div>
+                <button id="clearHistoryBtn" data-key="clearHistoryBtn">清除歷史記錄</button>
+            </div>
+        </div>
+        
+
+    </div>
+
+    <script>
+        // 全域變數
+        let scene, camera, renderer, sphere, particles, names = [];
+        let isSpinning = false, isSlowingDown = false;
+        let rotationSpeed = 0, targetSpeed = 0;
+        let nameObjects = [];
+        let particleSystem;
+        let currentPrize = "";
+        let winHistory = [];
+        let currentLang = 'zh';
+        
+        // 多語言配置
+        const translations = {
+            en: {
+                nameInput: "Enter participant names, one per line:\nJohn\nJane\nBob\n...",
+                prizeInput: "Enter prize name (e.g., iPhone 15 Pro)",
+                loadNamesBtn: "Load Names",
+                startBtn: "Start",
+                stopBtn: "Stop",
+                historyBtn: "History",
+                status: "Please load names first",
+                winnerText: "Congratulations",
+                historyTitle: "Lottery History",
+                clearHistoryBtn: "Clear History",
+                loadedStatus: "participants loaded | Prize:",
+                winnerStatus: "Winner:",
+                received: "Received:",
+                drawing: "Drawing...",
+                slowing: "Slowing down...",
+                prizeLabel: "Prize:",
+                defaultPrize: "Mystery Prize",
+                alertLoadNames: "Please enter participant names!",
+                alertValidNames: "Please enter valid names!",
+                confirmClear: "Clear all history records?",
+                settingsTitle: "Settings",
+                collapseLink: "Collapse",
+                langBtn: "English",
+                footerText: "Designed with ❤️ by hihi.todd@gmail.com" // 新增英文署名
+            },
+            zh: {
+                nameInput: "請輸入參與者名單，每行一個名字：\n張三\n李四\n王五\n...",
+                prizeInput: "請輸入禮物名稱（例如：iPhone 15 Pro）",
+                loadNamesBtn: "載入名單",
+                startBtn: "開始抽獎",
+                stopBtn: "停止",
+                historyBtn: "歷史記錄",
+                status: "請先載入名單",
+                winnerText: "恭喜中獎",
+                historyTitle: "抽獎歷史",
+                clearHistoryBtn: "清除歷史記錄",
+                loadedStatus: "個參與者 | 獎品:",
+                winnerStatus: "獲獎者:",
+                received: "獲得:",
+                drawing: "抽獎進行中...",
+                slowing: "減速中...",
+                prizeLabel: "獎品：",
+                defaultPrize: "神秘大獎",
+                alertLoadNames: "請輸入名單！",
+                alertValidNames: "請輸入有效的名單！",
+                confirmClear: "確定要清除所有歷史記錄嗎？",
+                settingsTitle: "抽獎設定",
+                collapseLink: "收起",
+                langBtn: "中文",
+                footerText: "用❤️設計 by hihi.todd@gmail.com" // 新增中文署名
+            },
+            ja: {
+                nameInput: "参加者名簿を入力してください（1行に1名）:\n太郎\n花子\n次郎\n...",
+                prizeInput: "賞品名を入力してください（例：iPhone 15 Pro）",
+                loadNamesBtn: "名簿読み込み",
+                startBtn: "抽選開始",
+                stopBtn: "停止",
+                historyBtn: "履歴",
+                status: "名簿を読み込んでください",
+                winnerText: "当選おめでとう",
+                historyTitle: "抽選履歴",
+                clearHistoryBtn: "履歴をクリア",
+                loadedStatus: "名の参加者 | 賞品:",
+                winnerStatus: "当選者:",
+                received: "獲得:",
+                drawing: "抽選中...",
+                slowing: "減速中...",
+                prizeLabel: "賞品：",
+                defaultPrize: "ミステリー賞品",
+                alertLoadNames: "参加者名簿を入力してください！",
+                alertValidNames: "有効な名簿を入力してください！",
+                confirmClear: "すべての履歴記録を削除しますか？",
+                settingsTitle: "抽選設定",
+                collapseLink: "折りたたむ",
+                langBtn: "日本語",
+                footerText: "❤️でデザイン by hihi.todd@gmail.com" // 新增日文署名
+            }
+        };
+        
+        function createCheerSound() {
+            // 創造歡呼聲效果
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    createTone(300 + Math.random() * 200, 0.3, 'sawtooth');
+                }, i * 100);
+            }
+            
+            // 附加慶祝音效
+            setTimeout(() => {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        createTone(800 + Math.random() * 400, 0.2, 'square');
+                    }, i * 150);
+                }
+            }, 500);
+        }
+        
+        function createConfetti() {
+            const colors = [
+                '#ff4444', '#00ffcc', '#ffaa00', '#bb66ff', 
+                '#44ff44', '#ff44bb', '#4444ff', '#ffff44',
+                '#ff8844', '#44ffff', '#cc44ff', '#88ff44'
+            ];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * window.innerWidth + 'px';
+                    confetti.style.top = '-10px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animation = `confetti-fall ${2 + Math.random() * 3}s linear`;
+                    confetti.style.boxShadow = `0 0 10px ${confetti.style.background}`;
+                    
+                    document.body.appendChild(confetti);
+                    
+                    confetti.addEventListener('animationend', () => {
+                        confetti.remove();
+                    });
+                }, i * 30);
+            }
+        }
+        
+        function updateLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            
+            // 更新所有帶有 data-key 的元素
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (t[key]) {
+                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = t[key];
+                    } else {
+                        el.textContent = t[key];
+                    }
+                }
+            });
+            
+            // 重新渲染歷史記錄
+            renderHistory();
+        }
+        
+        function switchLanguage() {
+            const languages = ['zh', 'en', 'ja'];
+            const currentIndex = languages.indexOf(currentLang);
+            const nextIndex = (currentIndex + 1) % languages.length;
+            updateLanguage(languages[nextIndex]);
+        }
+        
+        // 音效系統
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function createTone(frequency, duration, type = 'sine') {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        function playSpinSound() {
+            if (isSpinning) {
+                createTone(200 + Math.random() * 100, 0.1, 'square');
+                setTimeout(playSpinSound, 100);
+            }
+        }
+        
+        // 替换烟花效果函数
+        function createFireworks() {
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    firework.style.left = Math.random() * window.innerWidth + 'px';
+                    firework.style.top = Math.random() * window.innerHeight + 'px';
+                    firework.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                    firework.style.boxShadow = `0 0 20px ${firework.style.background}`;
+                    document.body.appendChild(firework);
+                    
+                    // 日文版的烟花动画
+                    firework.animate([
+                        { transform: 'scale(0) translateY(0)', opacity: 0 },
+                        { transform: 'scale(3) translateY(-100px)', opacity: 1 },
+                        { transform: 'scale(0) translateY(-200px)', opacity: 0 }
+                    ], {
+                        duration: 1000,
+                        easing: 'ease-out'
+                    }).onfinish = () => firework.remove();
+                }, i * 100);
+            }
+        }
+        
+        // 保持原有的playWinSound函数或使用日文版的更强烈音效
+        function playWinSound() {
+            // 日文版的更强烈勝利音效序列
+            createTone(523, 0.3); // C
+            setTimeout(() => createTone(659, 0.3), 200); // E
+            setTimeout(() => createTone(784, 0.3), 400); // G
+            setTimeout(() => createTone(1047, 0.5), 600); // High C
+            setTimeout(() => createTone(659, 0.2), 1000); // E
+            setTimeout(() => createTone(784, 0.2), 1100); // G
+            setTimeout(() => createTone(1047, 0.8), 1200); // High C sustained
+        }
+        
+        // 初始化3D場景
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 15;
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            createSphere();
+            createParticles();
+            
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const pointLight = new THREE.PointLight(0x64b5f6, 1, 100);
+            pointLight.position.set(0, 0, 20);
+            scene.add(pointLight);
+            
+            animate();
+        }
+        
+        function createSphere() {
+            const geometry = new THREE.SphereGeometry(5, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x2196f3,
+                transparent: true,
+                opacity: 0.3,
+                wireframe: true
+            });
+            sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+        }
+        
+        function createParticles() {
+            const particleCount = 500; // 从2000减少到500
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            
+            // 多彩顏色陣列
+            const colorPalette = [
+                new THREE.Color(0xff4444), // 紅色
+                new THREE.Color(0x00ffcc), // 青綠色
+                new THREE.Color(0xffaa00), // 橙色
+                new THREE.Color(0xbb66ff), // 紫色
+                new THREE.Color(0x44ff44), // 綠色
+                new THREE.Color(0xff44bb), // 粉紅色
+                new THREE.Color(0x4444ff), // 藍色
+                new THREE.Color(0xffff44), // 黃色
+                new THREE.Color(0xff8844), // 橘紅色
+                new THREE.Color(0x44ffff), // 青色
+                new THREE.Color(0xcc44ff), // 紫紅色
+                new THREE.Color(0x88ff44)  // 檸檬綠
+            ];
+            
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 50;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 50;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+                
+                // 隨機選擇顏色
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+        }
+        
+        // 修改createNameTexts函数中的字体设置，参考优化版本
+        function createNameTexts() {
+            nameObjects.forEach(obj => scene.remove(obj));
+            nameObjects = [];
+            
+            if (names.length === 0) return;
+            
+            names.forEach((name, index) => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                
+                // 参考优化版本的画布尺寸
+                canvas.width = 256;
+                canvas.height = 128;
+                
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 参考优化版本的字体设置
+                context.shadowColor = '#64b5f6';
+                context.shadowBlur = 20;
+                context.fillStyle = '#ffffff';
+                context.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif'; // 使用28px字体
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(name, canvas.width / 2, canvas.height / 2);
+                
+                context.shadowBlur = 0;
+                context.strokeStyle = '#64b5f6';
+                context.lineWidth = 2;
+                context.strokeText(name, canvas.width / 2, canvas.height / 2);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const material = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                
+                // 参考优化版本的几何体尺寸
+                const geometry = new THREE.PlaneGeometry(3, 1.5); // 3x1.5的尺寸
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                const phi = Math.acos(-1 + (2 * index) / names.length);
+                const theta = Math.sqrt(names.length * Math.PI) * phi;
+                
+                const radius = 7;
+                mesh.position.x = radius * Math.cos(theta) * Math.sin(phi);
+                mesh.position.y = radius * Math.sin(theta) * Math.sin(phi);
+                mesh.position.z = radius * Math.cos(phi);
+                
+                mesh.lookAt(camera.position);
+                mesh.userData = { 
+                    name: name, 
+                    originalPosition: mesh.position.clone(),
+                    phi: phi,
+                    theta: theta,
+                    radius: radius
+                };
+                
+                scene.add(mesh);
+                nameObjects.push(mesh);
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 球体旋转（仅在抽奖时）
+            if (isSpinning || isSlowingDown) {
+                sphere.rotation.x += rotationSpeed;
+                sphere.rotation.y += rotationSpeed * 1.2;
+                
+                if (isSlowingDown) {
+                    rotationSpeed *= 0.98;
+                    if (rotationSpeed < 0.001) {
+                        stopLottery();
+                    }
+                }
+            }
+            
+            // 名字对象位置和朝向更新 - 始终执行，确保面向摄像机
+            nameObjects.forEach((obj, index) => {
+                if (obj && obj.userData) {
+                    const rotationX = sphere.rotation.x || 0;
+                    const rotationY = sphere.rotation.y || 0;
+                    
+                    const phi = obj.userData.phi;
+                    const theta = obj.userData.theta + rotationY;
+                    const adjustedPhi = phi + rotationX;
+                    
+                    const radius = obj.userData.radius;
+                    obj.position.x = radius * Math.cos(theta) * Math.sin(adjustedPhi);
+                    obj.position.y = radius * Math.sin(theta) * Math.sin(adjustedPhi);
+                    obj.position.z = radius * Math.cos(adjustedPhi);
+                    
+                    // 关键修复：始终让名字面向摄像机
+                    obj.lookAt(camera.position);
+                    
+                    // 确保对象可见性
+                    obj.visible = true;
+                }
+            });
+            
+            // 粒子系统动画 - 始终运行
+            if (particleSystem) {
+                particleSystem.rotation.x += 0.001;
+                particleSystem.rotation.y += 0.002;
+                
+                // 抽奖时增加额外旋转
+                if (isSpinning) {
+                    particleSystem.rotation.x += rotationSpeed * 0.5;
+                    particleSystem.rotation.y += rotationSpeed * 0.7;
+                }
+            }
+            
+            // 摄像机动画 - 始终运行
+            const time = Date.now() * 0.001;
+            camera.position.x = Math.cos(time * 0.1) * 15;
+            camera.position.y = Math.sin(time * 0.1) * 5;
+            camera.lookAt(0, 0, 0);
+            
+            // 始终渲染场景
+            renderer.render(scene, camera);
+        }
+        
+        function startLottery() {
+            if (names.length === 0) return;
+            const t = translations[currentLang];
+            
+            isSpinning = true;
+            isSlowingDown = false;
+            rotationSpeed = 0.3;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('status').textContent = t.drawing;
+            document.getElementById('winner').style.display = 'none';
+            
+            playSpinSound();
+        }
+        
+        function slowDown() {
+            if (!isSpinning) return;
+            const t = translations[currentLang];
+            
+            isSlowingDown = true;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('status').textContent = t.slowing;
+        }
+        
+        // 修复stopLottery函数 - 使用材质克隆而不是修改emissive
+        function stopLottery() {
+            isSpinning = false;
+            isSlowingDown = false;
+            rotationSpeed = 0;
+            const t = translations[currentLang];
+            
+            const winner = names[Math.floor(Math.random() * names.length)];
+            
+            // 添加到歷史記錄
+            addToHistory(winner, currentPrize);
+            
+            const winnerDiv = document.getElementById('winner');
+            const winnerNameDiv = document.getElementById('winnerName');
+            const prizeTextDiv = document.getElementById('prizeText');
+            
+            winnerNameDiv.textContent = winner;
+            prizeTextDiv.textContent = `${t.prizeLabel}${currentPrize}`;
+            winnerDiv.style.display = 'block';
+            
+            // 重新设置事件监听器以确保关闭按钮工作
+            setupWinnerModalEvents();
+            
+            createFireworks();
+            createConfetti();
+            createCheerSound();
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('status').textContent = `${t.winnerStatus} ${winner} | ${t.received} ${currentPrize}`;
+            
+            playWinSound();
+            
+            // 高亮获奖者
+            nameObjects.forEach(obj => {
+                if (obj && obj.userData && obj.material) {
+                    if (obj.userData.name === winner) {
+                        const originalMaterial = obj.material;
+                        const highlightMaterial = originalMaterial.clone();
+                        highlightMaterial.color = new THREE.Color(0x00ff88);
+                        obj.material = highlightMaterial;
+                        obj.userData.originalMaterial = originalMaterial;
+                        obj.userData.isWinner = true;
+                    } else {
+                        obj.userData.isWinner = false;
+                    }
+                    obj.visible = true;
+                }
+            });
+            
+            // 8秒后恢复
+            setTimeout(() => {
+                winnerDiv.style.display = 'none';
+                nameObjects.forEach(obj => {
+                    if (obj && obj.userData && obj.userData.isWinner && obj.userData.originalMaterial) {
+                        obj.material = obj.userData.originalMaterial;
+                        obj.userData.isWinner = false;
+                    }
+                });
+            }, 8000);
+        }
+        
+        function loadNames() {
+            const input = document.getElementById('nameInput').value.trim();
+            const prizeInput = document.getElementById('prizeInput').value.trim();
+            const t = translations[currentLang];
+            
+            if (!input) {
+                alert(t.alertLoadNames);
+                return;
+            }
+            
+            names = input.split('\n').filter(name => name.trim()).map(name => name.trim());
+            
+            if (names.length === 0) {
+                alert(t.alertValidNames);
+                return;
+            }
+            
+            currentPrize = prizeInput || t.defaultPrize;
+            
+            createNameTexts();
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('status').textContent = `${names.length} ${t.loadedStatus} ${currentPrize}`;
+        }
+        
+        function addToHistory(winner, prize) {
+            const now = new Date();
+            const timeString = now.toLocaleString(currentLang === 'zh' ? 'zh-CN' : currentLang === 'ja' ? 'ja-JP' : 'en-US');
+            
+            winHistory.unshift({
+                time: timeString,
+                winner: winner,
+                prize: prize,
+                timestamp: now.getTime()
+            });
+            
+            // 只保留最新的50條記錄
+            if (winHistory.length > 50) {
+                winHistory = winHistory.slice(0, 50);
+            }
+        }
+        
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            const t = translations[currentLang];
+            
+            if (winHistory.length === 0) {
+                historyList.innerHTML = `<div style="text-align: center; opacity: 0.7; padding: 20px;">${t.status}</div>`;
+                return;
+            }
+            
+            historyList.innerHTML = winHistory.map(record => `
+                <div class="history-item">
+                    <div class="history-time">${record.time}</div>
+                    <div class="history-winner">${record.winner}</div>
+                    <div class="history-prize">${t.prizeLabel}${record.prize}</div>
+                </div>
+            `).join('');
+        }
+        
+        // 事件監聽器
+        document.getElementById('collapseLink').addEventListener('click', () => {
+            const controls = document.getElementById('controls');
+            const collapseLink = document.getElementById('collapseLink');
+            const t = translations[currentLang];
+            
+            controls.classList.toggle('collapsed');
+            
+            if (controls.classList.contains('collapsed')) {
+                collapseLink.textContent = '';
+            } else {
+                collapseLink.textContent = t.collapseLink || '收起';
+            }
+        });
+        
+
+        
+        // 语言按钮点击事件
+        document.getElementById('langBtn').addEventListener('click', switchLanguage);
+        
+        document.getElementById('loadNamesBtn').addEventListener('click', loadNames);
+        document.getElementById('startBtn').addEventListener('click', startLottery);
+        document.getElementById('stopBtn').addEventListener('click', slowDown);
+        
+        // 歷史記錄
+        document.getElementById('historyBtn').addEventListener('click', () => {
+            renderHistory();
+            document.getElementById('historyModal').style.display = 'flex';
+        });
+        
+        document.getElementById('closeHistoryBtn').addEventListener('click', () => {
+            document.getElementById('historyModal').style.display = 'none';
+        });
+        
+        document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+            const t = translations[currentLang];
+            if (confirm(t.confirmClear)) {
+                winHistory = [];
+                renderHistory();
+            }
+        });
+        
+        document.getElementById('historyModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('historyModal')) {
+                document.getElementById('historyModal').style.display = 'none';
+            }
+        });
+        
+        document.getElementById('winner').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('winner')) {
+                document.getElementById('winner').style.display = 'none';
+            }
+        });
+        
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            document.getElementById('winner').style.display = 'none';
+        });
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // 初始化
+        init();
+        
+        // 默認使用英语（从中文改为英语）
+        updateLanguage('en');
+        
+        // 添加调试函数来检查场景状态
+        function debugScene() {
+            console.log('Scene children:', scene.children.length);
+            console.log('Name objects:', nameObjects.length);
+            console.log('Names array:', names);
+            nameObjects.forEach((obj, index) => {
+                console.log(`Name ${index}:`, obj.userData.name, 'visible:', obj.visible, 'position:', obj.position);
+            });
+        }
+        
+        // 在浏览器控制台中可以调用 debugScene() 来检查状态
+        window.debugScene = debugScene;
+
+        // 在事件监听器部分添加邮件点击功能
+        // 底部署名邮件发送功能（使用默认邮件客户端）
+        document.getElementById('footerText').addEventListener('click', (e) => {
+            e.preventDefault();
+            // 修改为英文邮件内容
+            const subject = encodeURIComponent('About 3D Lottery System');
+            const body = encodeURIComponent('Hello,\n\nI would like to contact you regarding the 3D Lottery System.\n\nThank you!');
+            window.location.href = `mailto:hihi.todd@gmail.com?subject=${subject}&body=${body}`;
+        });
+
+        // 修复事件监听器 - 确保关闭按钮正确工作
+        function setupWinnerModalEvents() {
+            const closeBtn = document.getElementById('closeBtn');
+            const winnerDiv = document.getElementById('winner');
+            const winnerContent = document.getElementById('winnerContent');
+            
+            // 移除旧的事件监听器（如果存在）
+            if (closeBtn) {
+                closeBtn.replaceWith(closeBtn.cloneNode(true));
+            }
+            
+            // 重新获取元素并绑定事件
+            const newCloseBtn = document.getElementById('closeBtn');
+            const newWinnerDiv = document.getElementById('winner');
+            const newWinnerContent = document.getElementById('winnerContent');
+            
+            // 关闭按钮点击事件
+            if (newCloseBtn) {
+                newCloseBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button clicked successfully');
+                    newWinnerDiv.style.display = 'none';
+                }, { passive: false });
+                
+                // 添加触摸事件支持
+                newCloseBtn.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button touched');
+                    newWinnerDiv.style.display = 'none';
+                }, { passive: false });
+            }
+            
+            // 背景点击关闭
+            if (newWinnerDiv) {
+                newWinnerDiv.addEventListener('click', function(e) {
+                    if (e.target === newWinnerDiv) {
+                        console.log('Winner background clicked');
+                        newWinnerDiv.style.display = 'none';
+                    }
+                });
+            }
+            
+            // 防止内容区域点击冒泡
+            if (newWinnerContent) {
+                newWinnerContent.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+            
+            // 键盘ESC键关闭
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && newWinnerDiv.style.display === 'block') {
+                    newWinnerDiv.style.display = 'none';
+                }
+            });
+        }
+
+        // 在页面加载完成后设置事件监听器
+        document.addEventListener('DOMContentLoaded', setupWinnerModalEvents);
+    </script>
+</body>
+</html>
